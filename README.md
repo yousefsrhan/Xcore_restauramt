@@ -58,10 +58,16 @@ Open your terminal and run the following command:
 git clone https://github.com/YousefSarhan/XCORE-restaurant.git
 ```
 ---
-
-### 2. Navigate to the project directory and fetch the required Flutter packages:
+### 2. Open project with your programming IDE
+---
+### 3. Clean unnecessary files created by android studio from project 
+```bash
+flutter clean
+```
+---
+### 4. fetch the required Flutter packages:
 ```bash
 flutter pub get
 ```
 ---
-### 3. Run and Enjoy
+### 4. Run project using web browser/android device/emulator
