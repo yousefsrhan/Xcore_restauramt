@@ -70,4 +70,4 @@ flutter clean
 flutter pub get
 ```
 ---
-### 4. Run project using web browser/android device/emulator
+### 5. Run project using web browser/android device/emulator
