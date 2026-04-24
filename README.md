@@ -55,7 +55,7 @@ Follow these steps to get the project up and running on your local machine:
 ### 1. Clone the Repository
 Open your terminal and run the following command:
 ```bash
-git clone [https://github.com/YousefSarhan/XCORE-restaurant.git](https://github.com/YousefSarhan/XCORE-restaurant.git)
+git clone https://github.com/YousefSarhan/XCORE-restaurant.git
 ```
 ---
 
