@@ -44,7 +44,7 @@ We are a team of dedicated developers committed to building high-quality softwar
 | :--- | :--- | :--- |
 | **Yousef Sarhan** | .Net Backend Engineer | [🔗 GitHub](https://github.com/yousefsrhan) |
 | **Hossam Eldeen Nemr** | UI/UX & Frontend Engineer | [🔗 Gmail](hossamnemerr@gmail.com) |
-| **Mohamed Elfadel** | .Net Backend Engineer  | [🔗 GitHub](mohamedabdelhai49@gmail.com) |
+| **Mohamed Elfadel** | .Net Backend Engineer  | [🔗 Gmail](mohamedabdelhai49@gmail.com) |
 
 ---
 
