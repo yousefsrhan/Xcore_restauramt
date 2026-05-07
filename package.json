@@ -1,0 +1,22 @@
+{
+  "name": "xcore_restaurant",
+  "version": "1.0.0",
+  "description": "A high-performance restaurant management system for XCORE",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test spec specified\" && exit 1",
+    "build": "flutter build web --release --web-renderer canvaskit",
+    "deploy": "firebase deploy"
+  },
+  "keywords": [
+    "flutter",
+    "firebase",
+    "erp",
+    "restaurant"
+  ],
+  "author": "Yousef Sarhan",
+  "license": "ISC",
+  "dependencies": {
+    "firebase": "^10.12.1"
+  }
+}

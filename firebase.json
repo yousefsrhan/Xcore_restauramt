@@ -1,0 +1,22 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "xcorerestaurant",
+          "appId": "1:845776385789:android:your_android_id_here",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "xcorerestaurant",
+          "configurations": {
+            "android": "1:845776385789:android:your_android_id_here",
+            "web": "1:845776385789:web:83ddbe48c9d89b56ab42a4"
+          }
+        }
+      }
+    }
+  }
+}

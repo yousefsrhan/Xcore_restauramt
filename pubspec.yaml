@@ -1,0 +1,33 @@
+name: xcore_restaurant
+description: A new Flutter restaurant application.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # تم تحديث النسخ لإصدارات مستقرة تتوافق مع SDK 3 بدون علامة ^
+  cupertino_icons: 1.0.8
+  #google_fonts: 6.2.1
+  provider: 6.1.2
+  firebase_core: 3.15.2
+  cloud_firestore: 5.6.12
+  connectivity_plus: 7.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 3.0.2
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
