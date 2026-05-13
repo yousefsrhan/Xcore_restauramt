@@ -1,11 +1,8 @@
 // ==========================================
 // screens/staff_profile_screen.dart
 // ==========================================
-import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-// تم حذف google_fonts لضمان الأداء السلس أوفلاين
 import '../theme/app_theme.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/app_drawer.dart';
@@ -17,65 +14,48 @@ class StaffProfileScreen extends StatefulWidget {
   State<StaffProfileScreen> createState() => _StaffProfileScreenState();
 }
 
-class _StaffProfileScreenState extends State<StaffProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _StaffProfileScreenState extends State<StaffProfileScreen> {
   String? _currentId;
   bool _idResolved = false;
-
-  late final AnimationController _glowCtrl;
-  late final Animation<double> _glowAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _glowCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2800),
-    )..repeat(reverse: true);
-    _glowAnim = Tween<double>(begin: 0.25, end: 0.52).animate(
-      CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _glowCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_idResolved) {
-      _idResolved = true;
-      _resolveCurrentId();
-    }
+    if (_idResolved) return;
+    _idResolved = true;
+    _resolveCurrentId();
+  }
+
+  void _setCurrentId(String id) {
+    if (mounted) setState(() => _currentId = id);
+  }
+
+  Future<String?> _firstStaffId({String? role}) async {
+    final collection = FirebaseFirestore.instance.collection('staff');
+    final query = role == null
+        ? collection.limit(1)
+        : collection.where('role', isEqualTo: role).limit(1);
+    final snap = await query.get();
+    return snap.docs.isNotEmpty ? snap.docs.first.id : null;
   }
 
   Future<void> _resolveCurrentId() async {
     final arg = ModalRoute.of(context)?.settings.arguments;
-    if (arg is String && arg.trim().isNotEmpty) {
-      if (mounted) setState(() => _currentId = arg.trim());
-      return;
-    }
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('staff')
-          .where('role', isEqualTo: 'cashier')
-          .limit(1)
-          .get();
+    if (arg is String && arg.trim().isNotEmpty) return _setCurrentId(arg.trim());
 
-      if (snap.docs.isNotEmpty && mounted) {
-        setState(() => _currentId = snap.docs.first.id);
-      } else {
-        final fallbackSnap = await FirebaseFirestore.instance.collection('staff').limit(1).get();
-        if (fallbackSnap.docs.isNotEmpty && mounted) {
-          setState(() => _currentId = fallbackSnap.docs.first.id);
-        }
-      }
+    try {
+      final id = await _firstStaffId(role: 'cashier') ?? await _firstStaffId();
+      if (id != null) _setCurrentId(id);
     } catch (e) {
       debugPrint('[StaffProfile] Error resolving ID: $e');
     }
+  }
+
+  QueryDocumentSnapshot? _currentDoc(List<QueryDocumentSnapshot> allDocs) {
+    for (final doc in allDocs) {
+      if (doc.id == _currentId) return doc;
+    }
+    return allDocs.isNotEmpty ? allDocs.first : null;
   }
 
   @override
@@ -92,37 +72,25 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
           }
 
           final allDocs = snapshot.data?.docs ?? [];
-
-          QueryDocumentSnapshot? currentDoc;
-          try {
-            currentDoc = allDocs.firstWhere((d) => d.id == _currentId);
-          } catch (_) {
-            currentDoc = allDocs.isNotEmpty ? allDocs.first : null;
-          }
-
+          final currentDoc = _currentDoc(allDocs);
           final teamDocs = allDocs.where((d) => d.id != currentDoc?.id).toList();
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
               _buildAppBar(),
-
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: currentDoc == null
-                      ? const SizedBox()
-                      : _HeroCard(doc: currentDoc, glowAnim: _glowAnim),
+                  child: currentDoc == null ? const SizedBox() : _HeroCard(doc: currentDoc),
                 ),
               ),
-
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 14),
                   child: _SectionHeader(count: teamDocs.length),
                 ),
               ),
-
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList.separated(
@@ -131,13 +99,10 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
                   itemBuilder: (_, i) => _TeamTile(doc: teamDocs[i]),
                 ),
               ),
-
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 40),
-                  child: _LogoutButton(
-                    onTap: () => Navigator.of(context).pushReplacementNamed('/login'),
-                  ),
+                  child: _LogoutButton(onTap: () => Navigator.of(context).pushReplacementNamed('/login')),
                 ),
               ),
             ],
@@ -156,22 +121,24 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
         onPressed: () => Scaffold.of(ctx).openDrawer(),
       ),
     ),
-    title: const Text('XCORE',
-        style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary)),
+    title: const Text('XCORE', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary)),
     actions: const [
-      Center(child: Padding(
-        padding: EdgeInsets.only(right: 20),
-        child: Text('STAFF',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.onSurfaceVariant)),
-      )),
+      Center(
+        child: Padding(
+          padding: EdgeInsets.only(right: 20),
+          child: Text(
+            'STAFF',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.onSurfaceVariant),
+          ),
+        ),
+      ),
     ],
   );
 }
 
 class _HeroCard extends StatelessWidget {
   final QueryDocumentSnapshot doc;
-  final Animation<double> glowAnim;
-  const _HeroCard({required this.doc, required this.glowAnim});
+  const _HeroCard({required this.doc});
 
   @override
   Widget build(BuildContext context) {
@@ -183,10 +150,7 @@ class _HeroCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(28),
-      ),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(28)),
       child: Column(
         children: [
           Row(
@@ -197,14 +161,18 @@ class _HeroCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+                    Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                      child: Text(role.toUpperCase(),
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        role.toUpperCase(),
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary),
+                      ),
                     ),
                   ],
                 ),
@@ -238,10 +206,8 @@ class _TeamTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(data['name'] ?? '',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(data['role'] ?? '',
-                    style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                Text(data['name'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(data['role'] ?? '', style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
               ],
             ),
           ),
@@ -259,14 +225,12 @@ class _Avatar extends StatelessWidget {
   const _Avatar({required this.imgUrl, required this.radius});
 
   @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: AppColors.surfaceContainerHighest,
-      backgroundImage: imgUrl.isNotEmpty ? NetworkImage(imgUrl) : null,
-      child: imgUrl.isEmpty ? Icon(Icons.person, color: AppColors.onSurfaceVariant, size: radius) : null,
-    );
-  }
+  Widget build(BuildContext context) => CircleAvatar(
+    radius: radius,
+    backgroundColor: AppColors.surfaceContainerHighest,
+    backgroundImage: imgUrl.isNotEmpty ? NetworkImage(imgUrl) : null,
+    child: imgUrl.isEmpty ? Icon(Icons.person, color: AppColors.onSurfaceVariant, size: radius) : null,
+  );
 }
 
 class _SalaryInfo extends StatelessWidget {
@@ -274,51 +238,52 @@ class _SalaryInfo extends StatelessWidget {
   const _SalaryInfo({required this.salary});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          const Icon(Icons.payments_outlined, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('MONTHLY SALARY',
-                  style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold)),
-              Text('$salary ج',
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+    child: Row(
+      children: [
+        const Icon(Icons.payments_outlined, color: AppColors.primary),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('MONTHLY SALARY',
+                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold)),
+            Text('$salary ج', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ],
+    ),
+  );
 }
 
 class _SectionHeader extends StatelessWidget {
   final int count;
   const _SectionHeader({required this.count});
+
   @override
   Widget build(BuildContext context) => Row(children: [
     const Text('TEAM MEMBERS',
         style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
     const SizedBox(width: 8),
-    CircleAvatar(radius: 10, backgroundColor: AppColors.surfaceContainerHighest,
-        child: Text('$count', style: const TextStyle(fontSize: 10, color: Colors.white))),
+    CircleAvatar(
+      radius: 10,
+      backgroundColor: AppColors.surfaceContainerHighest,
+      child: Text('$count', style: const TextStyle(fontSize: 10, color: Colors.white)),
+    ),
   ]);
 }
 
 class _LogoutButton extends StatelessWidget {
   final VoidCallback onTap;
   const _LogoutButton({required this.onTap});
+
   @override
   Widget build(BuildContext context) => ElevatedButton.icon(
     onPressed: onTap,
     icon: const Icon(Icons.logout, color: Colors.redAccent),
-    label: const Text('LOGOUT / END SHIFT',
-        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+    label: const Text('LOGOUT / END SHIFT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
     style: ElevatedButton.styleFrom(
       backgroundColor: Colors.red.withOpacity(0.1),
       minimumSize: const Size(double.infinity, 55),
