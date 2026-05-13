@@ -1,11 +1,13 @@
-// ==========================================
-// screens/payment_selection_screen.dart
-// ==========================================
 import 'package:flutter/material.dart';
-// تم حذف google_fonts لضمان استقرار التطبيق أوفلاين
 import '../theme/app_theme.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/bottom_nav_bar.dart';
+
+const _methods = [
+  ('Cash', 'Physical currency & bills', Icons.payments_rounded),
+  ('Credit Card', 'Visa, Mastercard, AMEX', Icons.credit_card_rounded),
+  ('Apple Pay', 'Express NFC mobile payment', Icons.contactless_rounded)
+];
 
 class PaymentSelectionScreen extends StatefulWidget {
   const PaymentSelectionScreen({super.key});
@@ -14,6 +16,8 @@ class PaymentSelectionScreen extends StatefulWidget {
 
 class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   String _selectedMethod = 'Credit Card';
+
+  String _money(double value) => '${value.toStringAsFixed(0)} ج';
 
   @override
   Widget build(BuildContext context) {
@@ -55,16 +59,15 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                      'Total to Pay:\n${total.toStringAsFixed(0)} ج', // التعديل للعملة المحلية والخط اللوكال
+                      'Total to Pay:\n${_money(total)}',
                       style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Colors.white, height: 1.1, letterSpacing: -1.5)
                   ),
 
                   const SizedBox(height: 32),
-                  _buildMethodCard('Cash', 'Physical currency & bills', Icons.payments_rounded),
-                  const SizedBox(height: 12),
-                  _buildMethodCard('Credit Card', 'Visa, Mastercard, AMEX', Icons.credit_card_rounded),
-                  const SizedBox(height: 12),
-                  _buildMethodCard('Apple Pay', 'Express NFC mobile payment', Icons.contactless_rounded),
+                  for (var i = 0; i < _methods.length; i++) ...[
+                    _buildMethodCard(_methods[i].$1, _methods[i].$2, _methods[i].$3),
+                    if (i < _methods.length - 1) const SizedBox(height: 12),
+                  ],
 
                   const SizedBox(height: 32),
                   Container(
@@ -78,9 +81,9 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.onSurfaceVariant, letterSpacing: 1.5)
                         ),
                         const SizedBox(height: 16),
-                        _buildSummaryRow('Subtotal', '${cart.subtotal.toStringAsFixed(0)} ج'),
+                        _buildSummaryRow('Subtotal', _money(cart.subtotal)),
                         const SizedBox(height: 8),
-                        _buildSummaryRow('Service Charge (15%)', '${cart.service.toStringAsFixed(0)} ج'),
+                        _buildSummaryRow('Service Charge (15%)', _money(cart.service)),
                       ],
                     ),
                   ),
@@ -92,11 +95,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             child: GestureDetector(
-              onTap: () {
-                if (total > 0) {
-                  Navigator.of(context).pushNamed('/payment-success');
-                }
-              },
+              onTap: () { if (total > 0) Navigator.of(context).pushNamed('/payment-success'); },
               child: Container(
                 height: 64,
                 decoration: BoxDecoration(
@@ -125,7 +124,8 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   }
 
   Widget _buildMethodCard(String title, String subtitle, IconData icon) {
-    bool isSelected = _selectedMethod == title;
+    final isSelected = _selectedMethod == title;
+
     return GestureDetector(
       onTap: () => setState(() => _selectedMethod = title),
       child: AnimatedContainer(
@@ -177,13 +177,11 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500)),
-        Text(value, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
+  Widget _buildSummaryRow(String label, String value) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500)),
+      Text(value, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w700)),
+    ],
+  );
 }
