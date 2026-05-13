@@ -1,6 +1,3 @@
-// ==========================================
-// screens/staff_profile_screen.dart
-// ==========================================
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
@@ -21,78 +18,63 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_idResolved) return;
-    _idResolved = true;
-    _resolveCurrentId();
+    if (!_idResolved) {
+      _idResolved = true;
+      _resolveId();
+    }
   }
 
-  void _setCurrentId(String id) {
-    if (mounted) setState(() => _currentId = id);
-  }
-
-  Future<String?> _firstStaffId({String? role}) async {
-    final collection = FirebaseFirestore.instance.collection('staff');
-    final query = role == null
-        ? collection.limit(1)
-        : collection.where('role', isEqualTo: role).limit(1);
-    final snap = await query.get();
-    return snap.docs.isNotEmpty ? snap.docs.first.id : null;
-  }
-
-  Future<void> _resolveCurrentId() async {
+  Future<void> _resolveId() async {
     final arg = ModalRoute.of(context)?.settings.arguments;
-    if (arg is String && arg.trim().isNotEmpty) return _setCurrentId(arg.trim());
-
-    try {
-      final id = await _firstStaffId(role: 'cashier') ?? await _firstStaffId();
-      if (id != null) _setCurrentId(id);
-    } catch (e) {
-      debugPrint('[StaffProfile] Error resolving ID: $e');
+    if (arg is String && arg.isNotEmpty) {
+      setState(() => _currentId = arg.trim());
+      return;
     }
-  }
-
-  QueryDocumentSnapshot? _currentDoc(List<QueryDocumentSnapshot> allDocs) {
-    for (final doc in allDocs) {
-      if (doc.id == _currentId) return doc;
+    final snap = await FirebaseFirestore.instance.collection('staff').limit(1).get();
+    if (snap.docs.isNotEmpty && mounted) {
+      setState(() => _currentId = snap.docs.first.id);
     }
-    return allDocs.isNotEmpty ? allDocs.first : null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       drawer: const AppDrawer(),
       bottomNavigationBar: const BottomNavBar(currentIndex: -1),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('staff').snapshots(),
         builder: (context, snapshot) {
-          if (!_idResolved || snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          if (!_idResolved || !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
 
           final allDocs = snapshot.data?.docs ?? [];
-          final currentDoc = _currentDoc(allDocs);
+
+          QueryDocumentSnapshot? currentDoc;
+          for (final doc in allDocs) {
+            if (doc.id == _currentId) {
+              currentDoc = doc;
+              break;
+            }
+          }
+          currentDoc ??= allDocs.isNotEmpty ? allDocs.first : null;
+
           final teamDocs = allDocs.where((d) => d.id != currentDoc?.id).toList();
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              _buildAppBar(),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: currentDoc == null ? const SizedBox() : _HeroCard(doc: currentDoc),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 14),
-                  child: _SectionHeader(count: teamDocs.length),
+              _buildAppBar(theme),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                sliver: SliverToBoxAdapter(
+                  child: currentDoc != null ? _HeroCard(doc: currentDoc) : const SizedBox(),
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(20),
                 sliver: SliverList.separated(
                   itemCount: teamDocs.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -101,8 +83,10 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 40),
-                  child: _LogoutButton(onTap: () => Navigator.of(context).pushReplacementNamed('/login')),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+                  child: _LogoutButton(
+                    onTap: () => Navigator.pushReplacementNamed(context, '/login'),
+                  ),
                 ),
               ),
             ],
@@ -112,27 +96,19 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     );
   }
 
-  Widget _buildAppBar() => SliverAppBar(
-    backgroundColor: AppColors.background,
+  Widget _buildAppBar(ThemeData theme) => SliverAppBar(
     pinned: true,
+    title: Text('XCORE',
+        style: theme.textTheme.headlineSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w900,
+        )),
     leading: Builder(
       builder: (ctx) => IconButton(
-        icon: const Icon(Icons.menu, color: AppColors.primary),
+        icon: const Icon(Icons.menu),
         onPressed: () => Scaffold.of(ctx).openDrawer(),
       ),
     ),
-    title: const Text('XCORE', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary)),
-    actions: const [
-      Center(
-        child: Padding(
-          padding: EdgeInsets.only(right: 20),
-          child: Text(
-            'STAFF',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.onSurfaceVariant),
-          ),
-        ),
-      ),
-    ],
   );
 }
 
@@ -142,46 +118,27 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final data = doc.data() as Map<String, dynamic>;
-    final String name = data['name'] ?? 'Unknown';
-    final String role = data['role'] ?? 'Staff';
-    final String imgUrl = data['img'] ?? '';
-    final salary = data['salary'] ?? 0;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(28)),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _Avatar(imgUrl: imgUrl, radius: 45),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        role.toUpperCase(),
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary),
-                      ),
-                    ),
-                  ],
-                ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: _Avatar(imgUrl: data['img'] ?? '', radius: 35),
+              title: Text(data['name'] ?? '', style: theme.textTheme.headlineSmall),
+              subtitle: Text(
+                data['role']?.toString().toUpperCase() ?? '',
+                style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary),
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _SalaryInfo(salary: salary),
-        ],
+            ),
+            const SizedBox(height: 24),
+            _SalaryBox(salary: data['salary']),
+          ],
+        ),
       ),
     );
   }
@@ -193,11 +150,15 @@ class _TeamTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final data = doc.data() as Map<String, dynamic>;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: AppRadius.cardAll,
+      ),
       child: Row(
         children: [
           _Avatar(imgUrl: data['img'] ?? '', radius: 25),
@@ -206,13 +167,45 @@ class _TeamTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(data['name'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(data['role'] ?? '', style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                Text(data['name'] ?? '', style: theme.textTheme.titleMedium),
+                Text(
+                  data['role'] ?? '',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
               ],
             ),
           ),
-          Text('${data['salary'] ?? 0} ج',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text('${data['salary']} ج', style: theme.textTheme.titleMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _SalaryBox extends StatelessWidget {
+  final dynamic salary;
+  const _SalaryBox({required this.salary});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: AppRadius.cardAll,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.payments_outlined, color: theme.colorScheme.primary),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('MONTHLY SALARY', style: theme.textTheme.labelSmall),
+              Text('$salary ج', style: theme.textTheme.titleLarge),
+            ],
+          ),
         ],
       ),
     );
@@ -225,54 +218,15 @@ class _Avatar extends StatelessWidget {
   const _Avatar({required this.imgUrl, required this.radius});
 
   @override
-  Widget build(BuildContext context) => CircleAvatar(
-    radius: radius,
-    backgroundColor: AppColors.surfaceContainerHighest,
-    backgroundImage: imgUrl.isNotEmpty ? NetworkImage(imgUrl) : null,
-    child: imgUrl.isEmpty ? Icon(Icons.person, color: AppColors.onSurfaceVariant, size: radius) : null,
-  );
-}
-
-class _SalaryInfo extends StatelessWidget {
-  final dynamic salary;
-  const _SalaryInfo({required this.salary});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
-    child: Row(
-      children: [
-        const Icon(Icons.payments_outlined, color: AppColors.primary),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('MONTHLY SALARY',
-                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold)),
-            Text('$salary ج', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-class _SectionHeader extends StatelessWidget {
-  final int count;
-  const _SectionHeader({required this.count});
-
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    const Text('TEAM MEMBERS',
-        style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-    const SizedBox(width: 8),
-    CircleAvatar(
-      radius: 10,
-      backgroundColor: AppColors.surfaceContainerHighest,
-      child: Text('$count', style: const TextStyle(fontSize: 10, color: Colors.white)),
-    ),
-  ]);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      backgroundImage: imgUrl.isNotEmpty ? NetworkImage(imgUrl) : null,
+      child: imgUrl.isEmpty ? Icon(Icons.person, color: theme.colorScheme.onSurfaceVariant) : null,
+    );
+  }
 }
 
 class _LogoutButton extends StatelessWidget {
@@ -280,15 +234,18 @@ class _LogoutButton extends StatelessWidget {
   const _LogoutButton({required this.onTap});
 
   @override
-  Widget build(BuildContext context) => ElevatedButton.icon(
-    onPressed: onTap,
-    icon: const Icon(Icons.logout, color: Colors.redAccent),
-    label: const Text('LOGOUT / END SHIFT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.red.withOpacity(0.1),
-      minimumSize: const Size(double.infinity, 55),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 0,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.logout),
+      label: const Text('LOGOUT / END SHIFT'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: theme.colorScheme.error,
+        side: BorderSide(color: theme.colorScheme.error.withOpacity(0.2)),
+        minimumSize: const Size(double.infinity, 55),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.buttonAll),
+      ),
+    );
+  }
 }
