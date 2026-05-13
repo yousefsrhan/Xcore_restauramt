@@ -3,7 +3,6 @@
 // ==========================================
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// تم حذف google_fonts لضمان العمل أوفلاين
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../providers/cart_provider.dart';
@@ -109,7 +108,6 @@ class _MenuScreenState extends State<MenuScreen> {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         categoryId == 'all' ? 'قائمة الطعام كاملة' : categoryId.toUpperCase(),
-        // استخدام TextStyle عادي يقرأ Cairo من الـ Theme
         style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
