@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// تم حذف import google_fonts تماماً
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

@@ -2,7 +2,6 @@
 // widgets/app_drawer.dart
 // ==========================================
 import 'package:flutter/material.dart';
-// تم حذف مكتبة google_fonts لزيادة سرعة استجابة القائمة الجانبية
 import '../screens/settings.dart';
 
 class AppDrawer extends StatelessWidget {

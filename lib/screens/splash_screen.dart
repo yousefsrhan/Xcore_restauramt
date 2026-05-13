@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// تم حذف google_fonts لضمان ظهور النصوص فوراً مع الأنميشن بدون تحميل
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

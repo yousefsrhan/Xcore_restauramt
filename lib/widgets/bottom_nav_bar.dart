@@ -2,7 +2,6 @@
 // The main bottom nav bar of the app (Local Font Version)
 // ==========================================
 import 'package:flutter/material.dart';
-// تم حذف مكتبة google_fonts لتحسين أداء التنقل بين الصفحات
 import '../theme/app_theme.dart';
 
 const _kNav = [
