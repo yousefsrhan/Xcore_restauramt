@@ -1,14 +1,13 @@
-// ==========================================
-// 9. screens/payment_successful_screen.dart
-// ==========================================
 import 'package:flutter/material.dart';
-// تم حذف google_fonts تماماً
 import '../theme/app_theme.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 class PaymentSuccessfulScreen extends StatelessWidget {
   const PaymentSuccessfulScreen({super.key});
+
+  String _money(double value) => '${value.toStringAsFixed(0)} ج';
+  String get _orderId => DateTime.now().millisecondsSinceEpoch.toString().substring(8);
 
   @override
   Widget build(BuildContext context) {
@@ -73,71 +72,27 @@ class PaymentSuccessfulScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(20)
-              ),
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                      'TRANSACTION ID',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.onSurfaceVariant,
-                          letterSpacing: 1.5
-                      )
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                      'Order #${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-                      style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.5
-                      )
-                  ),
-                ],
+            _infoCard(
+              title: 'TRANSACTION ID',
+              value: 'Order #$_orderId',
+              valueStyle: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5
               ),
             ),
 
             const SizedBox(height: 12),
 
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(20)
-              ),
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                      'TOTAL AMOUNT PAID',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.onSurfaceVariant,
-                          letterSpacing: 1.5
-                      )
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                      '${total.toStringAsFixed(0)} ج', // تم التحويل للعملة المحلية والخط اللوكال
-                      style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -1.0
-                      )
-                  ),
-                ],
+            _infoCard(
+              title: 'TOTAL AMOUNT PAID',
+              value: _money(total),
+              valueStyle: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1.0
               ),
             ),
 
@@ -145,7 +100,7 @@ class PaymentSuccessfulScreen extends StatelessWidget {
 
             TextButton(
               onPressed: () {
-                cart.clear(); // مسح السلة بعد نجاح العملية
+                cart.clear();
                 Navigator.of(context).pushNamedAndRemoveUntil('/menu', (route) => false);
               },
               child: const Text(
@@ -164,4 +119,29 @@ class PaymentSuccessfulScreen extends StatelessWidget {
       bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
+
+  Widget _infoCard({required String title, required String value, required TextStyle valueStyle}) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20)
+    ),
+    width: double.infinity,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+            title,
+            style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurfaceVariant,
+                letterSpacing: 1.5
+            )
+        ),
+        const SizedBox(height: 8),
+        Text(value, style: valueStyle),
+      ],
+    ),
+  );
 }
