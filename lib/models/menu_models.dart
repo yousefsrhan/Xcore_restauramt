@@ -40,7 +40,7 @@ class MenuItem {
 class MenuUtils {
   static const _allCategory = MenuCategory(
     id: 'all',
-    label: 'الكل',
+    label: 'all',
     icon: Icons.grid_view_rounded,
   );
 
