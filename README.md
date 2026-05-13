@@ -43,7 +43,7 @@ We are a team of dedicated developers committed to building high-quality softwar
 | Name | Role | Profile |
 | :--- | :--- | :--- |
 | **Yousef Sarhan** | .Net Backend Engineer | [🔗 GitHub](https://github.com/yousefsrhan) |
-| **Hossam Eldeen Nemr** | UI/UX & Frontend Engineer | [🔗 GitHub](https://github.com/hossamnemerr) |
+| **HossamEldeen Nemr** | UI/UX & Frontend Engineer | [🔗 GitHub](https://github.com/hossamnemerr) |
 | **Mohamed Elfadel** | .Net Backend Engineer | [🔗 GitHub](https://github.com/El-ring) |
 
 ---
