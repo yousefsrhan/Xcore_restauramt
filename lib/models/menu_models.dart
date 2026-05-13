@@ -1,82 +1,66 @@
 import 'package:flutter/material.dart';
 
-class CartItem {
-  final String id, name, category, description, detail, imageUrl;
-  final double unitPrice;
-  int quantity;
+class MenuCategory {
+  final String id;
+  final String label;
+  final IconData icon;
 
-  CartItem({
+  const MenuCategory({required this.id, required this.label, required this.icon});
+}
+
+class MenuItem {
+  final String id, name, description, imageUrl, categoryId;
+  final double price;
+  final List<String> chips;
+  final bool isFeatured;
+
+  const MenuItem({
     required this.id,
     required this.name,
-    required this.category,
-    this.description = '',
-    required this.detail,
+    required this.description,
+    required this.price,
     required this.imageUrl,
-    required this.unitPrice,
-    this.quantity = 1,
+    required this.categoryId,
+    this.chips = const [],
+    this.isFeatured = false,
   });
 
-  double get total => unitPrice * quantity;
+  factory MenuItem.fromMap(String docId, Map<String, dynamic> map) => MenuItem(
+    id: docId,
+    name: map['name'] ?? 'بدون اسم',
+    description: map['description'] ?? '',
+    price: (map['price'] ?? 0).toDouble(),
+    imageUrl: map['imageUrl'] ?? '',
+    categoryId: map['category'] ?? 'عام',
+    isFeatured: map['isFeatured'] ?? false,
+    chips: map['chips'] != null ? List<String>.from(map['chips']) : [],
+  );
 }
 
-class CartNotifier extends ChangeNotifier {
-  final List<CartItem> _items = [];
+class MenuUtils {
+  static const _allCategory = MenuCategory(
+    id: 'all',
+    label: 'الكل',
+    icon: Icons.grid_view_rounded,
+  );
 
-  List<CartItem> get items => List.unmodifiable(_items);
-  int get totalCount => _items.fold(0, (s, i) => s + i.quantity);
-  double get subtotal => _items.fold(0.0, (s, i) => s + i.total);
-  double get service => subtotal * 0.15;
-  double get grandTotal => subtotal + service;
+  static List<MenuCategory> generateDynamicCategories(List<MenuItem> allItems) => [
+    _allCategory,
+    ...allItems.map((item) => item.categoryId).toSet().map(
+      (name) => MenuCategory(id: name, label: name, icon: _getIconForCategory(name)),
+    ),
+  ];
 
-  int _indexOf(String id) => _items.indexWhere((e) => e.id == id);
+  static IconData _getIconForCategory(String categoryName) {
+    final name = categoryName.toLowerCase();
 
-  void addItem(CartItem item) {
-    final idx = _indexOf(item.id);
-    if (idx >= 0) {
-      _items[idx].quantity += item.quantity;
-    } else {
-      _items.add(item);
-    }
-    notifyListeners();
+    if (name.contains('pizza') || name.contains('بيتزا')) return Icons.local_pizza_rounded;
+    if (name.contains('burger') || name.contains('برجر')) return Icons.lunch_dining_rounded;
+    if (name.contains('juice') || name.contains('عصير')) return Icons.local_drink_rounded;
+    if (name.contains('shawarma') || name.contains('شاورما')) return Icons.kebab_dining_rounded;
+    if (name.contains('broast') || name.contains('بروست')) return Icons.set_meal_rounded;
+    if (name.contains('dessert') || name.contains('حلو')) return Icons.icecream_rounded;
+
+    return Icons.fastfood_rounded;
   }
-
-  void increment(String id) {
-    final idx = _indexOf(id);
-    if (idx < 0) return;
-
-    _items[idx].quantity++;
-    notifyListeners();
-  }
-
-  void decrement(String id) {
-    final idx = _indexOf(id);
-    if (idx < 0 || _items[idx].quantity <= 1) return;
-
-    _items[idx].quantity--;
-    notifyListeners();
-  }
-
-  void removeItem(String id) {
-    _items.removeWhere((e) => e.id == id);
-    notifyListeners();
-  }
-
-  void clear() {
-    _items.clear();
-    notifyListeners();
-  }
-}
-
-class CartProvider extends InheritedNotifier<CartNotifier> {
-  const CartProvider({
-    super.key,
-    required CartNotifier notifier,
-    required super.child,
-  }) : super(notifier: notifier);
-
-  static CartNotifier of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<CartProvider>()!.notifier!;
-
-  static CartNotifier read(BuildContext context) =>
-      context.getInheritedWidgetOfExactType<CartProvider>()!.notifier!;
 }
