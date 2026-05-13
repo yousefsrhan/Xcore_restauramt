@@ -1,8 +1,7 @@
-// ==========================================
+﻿// ==========================================
 // 10. screens/about_us_screen.dart
 // ==========================================
 import 'package:flutter/material.dart';
-// تم حذف import google_fonts لأنه يسبب أخطاء ويحتاج إنترنت
 import '../theme/app_theme.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/app_drawer.dart';
@@ -23,7 +22,6 @@ class AboutUsScreen extends StatelessWidget {
               onPressed: () => Scaffold.of(context).openDrawer()
           ),
         ),
-        // تم استبدال GoogleFonts بـ TextStyle عادي
         title: const Text(
           'XCORE',
           style: TextStyle(
