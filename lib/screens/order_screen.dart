@@ -1,10 +1,6 @@
-// ==========================================
-// 6. screens/order_screen.dart
-// ==========================================
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// تم حذف google_fonts لضمان العمل بالخط المحلي أوفلاين
 import '../theme/app_theme.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -24,14 +20,10 @@ class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin
   }
 
   void _ensure(String id) {
-    if (!_qty.containsKey(id)) {
-      final c = AnimationController(vsync: this, duration: const Duration(milliseconds: 110));
-      _qty[id] = c; _qtyS[id] = Tween<double>(begin: 1.0, end: 0.78).animate(CurvedAnimation(parent: c, curve: Curves.easeInOut));
-    }
-    if (!_del.containsKey(id)) {
-      final c = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
-      _del[id] = c; _delA[id] = CurvedAnimation(parent: c, curve: Curves.easeIn);
-    }
+    final qty = _qty.putIfAbsent(id, () => AnimationController(vsync: this, duration: const Duration(milliseconds: 110)));
+    _qtyS.putIfAbsent(id, () => Tween<double>(begin: 1.0, end: 0.78).animate(CurvedAnimation(parent: qty, curve: Curves.easeInOut)));
+    final del = _del.putIfAbsent(id, () => AnimationController(vsync: this, duration: const Duration(milliseconds: 280)));
+    _delA.putIfAbsent(id, () => CurvedAnimation(parent: del, curve: Curves.easeIn));
   }
 
   Future<void> _tapQty(String id, bool add) async {
@@ -48,6 +40,8 @@ class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin
     CartProvider.read(context).removeItem(id);
     for (final m in [_qty, _qtyS, _del, _delA]) m.remove(id);
   }
+
+  String _money(double value) => '${value.toStringAsFixed(0)} ج';
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +95,8 @@ class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin
   ]);
 
   Widget _card(CartItem item) {
-    Widget card = Container(
+    final delAnim = _delA[item.id];
+    final card = Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(color: const Color(0xFF1E1E1E), borderRadius: BorderRadius.circular(16)),
@@ -125,11 +120,11 @@ class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin
         _stepper(item),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-          Text('${item.total.toStringAsFixed(0)} ج',
+          Text(_money(item.total),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: -0.32)),
           if (item.quantity > 1) ...[
             const SizedBox(height: 2),
-            Text('${item.unitPrice.toStringAsFixed(0)} ج / قطعة',
+            Text('${_money(item.unitPrice)} / قطعة',
                 style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant)),
           ],
         ]),
@@ -139,19 +134,15 @@ class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin
       ]),
     );
 
-    final delAnim = _delA[item.id];
-    if (delAnim != null) {
-      card = AnimatedBuilder(animation: delAnim,
-          builder: (_, child) => Opacity(opacity: 1.0 - delAnim.value, child: Transform.translate(offset: Offset(60 * delAnim.value, 0), child: child)),
-          child: card);
-    }
-    return card;
+    return delAnim == null ? card : AnimatedBuilder(animation: delAnim, child: card,
+        builder: (_, child) => Opacity(opacity: 1.0 - delAnim.value,
+            child: Transform.translate(offset: Offset(60 * delAnim.value, 0), child: child)));
   }
 
   Widget _stepper(CartItem item) {
     final scale = _qtyS[item.id];
     Widget btn(IconData icon, bool isAdd) {
-      Widget b = GestureDetector(
+      final b = GestureDetector(
           onTap: () => _tapQty(item.id, isAdd),
           child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Icon(icon, size: 16, color: (!isAdd && item.quantity <= 1) ? AppColors.outlineVariant : AppColors.onSurfaceVariant)));
@@ -182,9 +173,9 @@ class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(child: _SCol('الإجمالي',     '${cart.subtotal.toStringAsFixed(0)} ج',   AppColors.onSurfaceVariant, 20)),
-              Expanded(child: _SCol('الخدمة 15%',   '${cart.service.toStringAsFixed(0)} ج',    AppColors.onSurfaceVariant, 20)),
-              Expanded(child: _SCol('الإجمالي الكلي','${cart.grandTotal.toStringAsFixed(0)} ج', AppColors.primary, 24, bold: true)),
+              Expanded(child: _SCol('الإجمالي',     _money(cart.subtotal),   AppColors.onSurfaceVariant, 20)),
+              Expanded(child: _SCol('الخدمة 15%',   _money(cart.service),    AppColors.onSurfaceVariant, 20)),
+              Expanded(child: _SCol('الإجمالي الكلي', _money(cart.grandTotal), AppColors.primary, 24, bold: true)),
             ]),
             const SizedBox(height: 16),
             GestureDetector(
