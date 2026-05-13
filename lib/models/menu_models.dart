@@ -1,95 +1,82 @@
 import 'package:flutter/material.dart';
 
-//
- class MenuCategory {
-  final String id;
-  final String label;
-  final IconData icon;
+class CartItem {
+  final String id, name, category, description, detail, imageUrl;
+  final double unitPrice;
+  int quantity;
 
-  const MenuCategory({required this.id, required this.label, required this.icon});
-}
-
-class MenuItem {
-  final String id, name, description, imageUrl, categoryId;
-  final double price;
-  final List<String> chips;
-  final bool isFeatured;
-
-  const MenuItem({
+  CartItem({
     required this.id,
     required this.name,
-    required this.description,
-    required this.price,
+    required this.category,
+    this.description = '',
+    required this.detail,
     required this.imageUrl,
-    required this.categoryId,
-    this.chips = const [],
-    this.isFeatured = false,
+    required this.unitPrice,
+    this.quantity = 1,
   });
 
-  // تحويل البيانات من Firestore
-  factory MenuItem.fromMap(String docId, Map<String, dynamic> map) {
-    return MenuItem(
-      id: docId,
-      name: map['name'] ?? 'بدون اسم',
-      description: map['description'] ?? '',
-      price: (map['price'] ?? 0).toDouble(),
-      imageUrl: map['imageUrl'] ?? '',
-      categoryId: map['category'] ?? 'عام',
-      isFeatured: map['isFeatured'] ?? false,
-      chips: map['chips'] != null ? List<String>.from(map['chips']) : [],
-    );
+  double get total => unitPrice * quantity;
+}
+
+class CartNotifier extends ChangeNotifier {
+  final List<CartItem> _items = [];
+
+  List<CartItem> get items => List.unmodifiable(_items);
+  int get totalCount => _items.fold(0, (s, i) => s + i.quantity);
+  double get subtotal => _items.fold(0.0, (s, i) => s + i.total);
+  double get service => subtotal * 0.15;
+  double get grandTotal => subtotal + service;
+
+  int _indexOf(String id) => _items.indexWhere((e) => e.id == id);
+
+  void addItem(CartItem item) {
+    final idx = _indexOf(item.id);
+    if (idx >= 0) {
+      _items[idx].quantity += item.quantity;
+    } else {
+      _items.add(item);
+    }
+    notifyListeners();
+  }
+
+  void increment(String id) {
+    final idx = _indexOf(id);
+    if (idx < 0) return;
+
+    _items[idx].quantity++;
+    notifyListeners();
+  }
+
+  void decrement(String id) {
+    final idx = _indexOf(id);
+    if (idx < 0 || _items[idx].quantity <= 1) return;
+
+    _items[idx].quantity--;
+    notifyListeners();
+  }
+
+  void removeItem(String id) {
+    _items.removeWhere((e) => e.id == id);
+    notifyListeners();
+  }
+
+  void clear() {
+    _items.clear();
+    notifyListeners();
   }
 }
 
-// Dynamic Selecting MenuItem from  database
-class MenuUtils {
+class CartProvider extends InheritedNotifier<CartNotifier> {
+  const CartProvider({
+    super.key,
+    required CartNotifier notifier,
+    required super.child,
+  }) : super(notifier: notifier);
 
-  static List<MenuCategory> generateDynamicCategories(List<MenuItem> allItems) {
-    // Extract words from database
-    final categoryNames = allItems.map((item) => item.categoryId).toSet().toList();
+  static CartNotifier of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<CartProvider>()!.notifier!;
 
-    //
-    List<MenuCategory> dynamicCategories = categoryNames.map((name) {
-      return MenuCategory(
-        id: name,
-        label: name,
-        icon: _getIconForCategory(name),
-      );
-    }).toList();
-
-
-    dynamicCategories.insert(
-      0,
-      const MenuCategory(id: 'all', label: 'الكل', icon: Icons.grid_view_rounded),
-    );
-
-    return dynamicCategories;
-  }
-
-  // تم إلغاء التعليق وإضافتها كـ static لتصحيح الخطأ
-  static IconData _getIconForCategory(String categoryName) {
-    final name = categoryName.toLowerCase();
-
-    if (name.contains('pizza') || name.contains('بيتزا')) {
-      return Icons.local_pizza_rounded;
-    }
-    if (name.contains('burger') || name.contains('برجر')) {
-      return Icons.lunch_dining_rounded;
-    }
-    if (name.contains('juice') || name.contains('عصير')) {
-      return Icons.local_drink_rounded;
-    }
-    if (name.contains('shawarma') || name.contains('شاورما')) {
-      return Icons.kebab_dining_rounded;
-    }
-    if (name.contains('broast') || name.contains('بروست')) {
-      return Icons.set_meal_rounded;
-    }
-    if (name.contains('dessert') || name.contains('حلو')) {
-      return Icons.icecream_rounded;
-    }
-
-    // شكل افتراضي لأي قسم غير معروف
-    return Icons.fastfood_rounded;
-  }
+  static CartNotifier read(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<CartProvider>()!.notifier!;
 }
